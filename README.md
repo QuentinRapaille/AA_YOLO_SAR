@@ -17,7 +17,7 @@ Welcome to the official implementation repository of our [paper](https://doi.org
 
 You can also install the depedencies by running the following command: 
 ```uv sync```
-3. Prepare the datasets in the YOLO format (see below for more details). 📁
+3. Prepare the datasets in the YOLO format (see below for more details).
 
 ### Dataset Preparation
 
@@ -25,7 +25,7 @@ For the SIRST dataset, dowload the [dataset](https://github.com/YimianDai/sirst)
 
 The YOLO format labels are already provided in this repo. 
 
-For custom datasets, follow the same architecture and place the dataset in a new directory under `data/datasets`.
+For custom datasets, follow the same folder architecture and place the dataset in a new directory under `data/datasets`.
 
 
 ## 🔬 Testing
