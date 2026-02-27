@@ -1,0 +1,6 @@
+train: data/datasets/HRSID_YOLO/HRSID_train.txt
+val: data/datasets/HRSID_YOLO/HRSID_val.txt
+test: data/datasets/HRSID_YOLO/HRSID_test.txt
+
+nc: 1
+names: ['ship']

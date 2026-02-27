@@ -1,0 +1,12 @@
+# Custom SAR dataset in YOLO format (Option A: PNG 8-bit, 3 channels)
+# Update the three txt files below after running scripts/prepare_sar_optionA.py
+
+train: ./data/datasets/SAR_OPTION_A_train.txt
+val: ./data/datasets/SAR_OPTION_A_val.txt
+test: ./data/datasets/SAR_OPTION_A_test.txt
+
+# number of classes
+nc: 1
+
+# class names
+names: ['target']

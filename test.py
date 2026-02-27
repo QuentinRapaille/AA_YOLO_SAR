@@ -71,6 +71,9 @@ def test(data,
 
     # Configure
     model.eval()
+    if device.type == 'cpu':
+        model.float()
+
     if isinstance(data, str):
         is_coco = data.endswith('coco.yaml')
         with open(data) as f:
@@ -88,6 +91,9 @@ def test(data,
     if not training:
         if device.type != 'cpu':
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
+        if device.type == 'cpu':
+            model.float()
+
         task = opt.task if opt.task in ('train', 'val', 'test') else task  # path to train/val/test images
         dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=opt.rect_test,
                                        prefix=colorstr(f'{task}: '))[0]
