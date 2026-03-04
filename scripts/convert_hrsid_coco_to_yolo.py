@@ -1,6 +1,7 @@
 # scripts/convert_hrsid_coco_to_yolo.py
 from pathlib import Path
 import json
+import random
 from collections import defaultdict
 
 ROOT = Path("HRSID_png")
@@ -8,6 +9,8 @@ ANN = ROOT / "annotations"
 OUT = Path("data/datasets/HRSID_YOLO")
 OUT_LABELS = OUT / "labels"
 OUT_LABELS.mkdir(parents=True, exist_ok=True)
+VAL_FROM_TRAIN = 500
+SEED = 42
 
 def resolve_image(file_name: str) -> Path:
     cands = [
@@ -64,8 +67,21 @@ def convert(json_file: Path, split_name: str):
 convert(ANN / "train2017.json", "HRSID_train")
 convert(ANN / "test2017.json", "HRSID_test")
 
-# val = test (simple baseline)
-(OUT / "HRSID_val.txt").write_text((OUT / "HRSID_test.txt").read_text())
+# Keep test split intact.
+# Build val by sampling from train split.
+train_txt = OUT / "HRSID_train.txt"
+train_lines = [l.strip() for l in train_txt.read_text().splitlines() if l.strip()]
+if not train_lines:
+    raise RuntimeError("HRSID_train.txt is empty; cannot build val split from train.")
+
+rng = random.Random(SEED)
+val_count = min(VAL_FROM_TRAIN, len(train_lines))
+val_lines = rng.sample(train_lines, val_count)
+val_set = set(val_lines)
+new_train_lines = [l for l in train_lines if l not in val_set]
+
+train_txt.write_text("\n".join(new_train_lines) + ("\n" if new_train_lines else ""))
+(OUT / "HRSID_val.txt").write_text("\n".join(val_lines) + ("\n" if val_lines else ""))
 
 # optionnel: train_test global
 if (ANN / "train_test2017.json").exists():
