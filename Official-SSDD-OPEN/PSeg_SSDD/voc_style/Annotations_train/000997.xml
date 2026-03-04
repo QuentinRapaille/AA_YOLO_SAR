@@ -1,0 +1,34 @@
+<annotation>
+	<folder>JPEGImages</folder>
+	<filename>000997.jpg</filename>
+	<path>JPEGImages</path>
+	<size>
+		<width>502</width>
+		<height>351</height>
+		<depth>3</depth>
+	</size>
+	<object>
+		<name>ship</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<segm>
+			<point>305,295</point>
+			<point>307,289</point>
+			<point>306,282</point>
+			<point>300,276</point>
+			<point>293,268</point>
+			<point>288,262</point>
+			<point>281,258</point>
+			<point>275,260</point>
+			<point>271,265</point>
+			<point>267,272</point>
+			<point>274,280</point>
+			<point>277,286</point>
+			<point>283,293</point>
+			<point>289,298</point>
+			<point>296,301</point>
+			<point>301,301</point>
+		</segm>
+	</object>
+</annotation>

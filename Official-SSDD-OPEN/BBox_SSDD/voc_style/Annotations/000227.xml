@@ -1,0 +1,22 @@
+<annotation>
+	<folder>JPEGImages</folder>
+	<filename>000227.jpg</filename>
+	<path>JPEGImages</path>
+	<size>
+		<width>467</width>
+		<height>391</height>
+		<depth>3</depth>
+	</size>
+	<object>
+		<name>ship</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>151</xmin>
+			<ymin>75</ymin>
+			<xmax>211</xmax>
+			<ymax>178</ymax>
+		</bndbox>
+	</object>
+</annotation>
