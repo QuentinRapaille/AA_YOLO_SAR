@@ -1,0 +1,6 @@
+train: data/datasets/LS_SSDD_v1_YOLO/LS_SSDD_v1_train.txt
+val: data/datasets/LS_SSDD_v1_YOLO/LS_SSDD_v1_val.txt
+test: data/datasets/LS_SSDD_v1_YOLO/LS_SSDD_v1_test.txt
+
+nc: 1
+names: ['ship']
