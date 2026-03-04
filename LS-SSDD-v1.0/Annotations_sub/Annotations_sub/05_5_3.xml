@@ -1,0 +1,26 @@
+<?xml version="1.0" ?><annotation>
+	<folder>JPEGImages</folder>
+	<filename>05_5_3.xml</filename>
+	<path>VOCdevkit/VOC2012/JPEGImages/05_5_3.xml</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>800</width>
+		<height>800</height>
+		<depth>1</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>ship</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>786</xmin>
+			<ymin>532</ymin>
+			<xmax>792</xmax>
+			<ymax>538</ymax>
+		</bndbox>
+	</object>
+</annotation>

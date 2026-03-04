@@ -1,0 +1,26 @@
+<?xml version="1.0" ?><annotation>
+	<folder>JPEGImages</folder>
+	<filename>15_8_9.xml</filename>
+	<path>VOCdevkit/VOC2012/JPEGImages/15_8_9.xml</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>800</width>
+		<height>800</height>
+		<depth>1</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>ship</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>415</xmin>
+			<ymin>503</ymin>
+			<xmax>434</xmax>
+			<ymax>522</ymax>
+		</bndbox>
+	</object>
+</annotation>
