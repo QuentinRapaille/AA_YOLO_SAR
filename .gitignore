@@ -6,9 +6,9 @@
 *.tif
 *.tiff
 *.heic
-*.JPG
+#*.JPG
 *.JPEG
-*.PNG
+#*.PNG
 *.BMP
 *.TIF
 *.TIFF
@@ -49,6 +49,9 @@ coco2017labels-segments.zip
 test2017.zip
 train2017.zip
 val2017.zip
+HRSID_png/*
+LS-SSDD-v1.0/*
+Official-SSDD-OPEN/*
 
 # MATLAB GitIgnore -----------------------------------------------------------------------------------------------------
 *.m~
