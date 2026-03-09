@@ -13,6 +13,12 @@ def smooth_BCE(eps=0.1):  # https://github.com/ultralytics/yolov3/issues/238#iss
     return 1.0 - 0.5 * eps, 0.5 * eps
 
 
+def safe_logit(x, eps=1e-6):
+    # Clamp probabilities before logit conversion to avoid inf/nan in AMP.
+    x = x.clamp(min=eps, max=1.0 - eps)
+    return torch.log(x / (1.0 - x))
+
+
 class BCEBlurWithLogitsLoss(nn.Module):
     # BCEwithLogitLoss() with reduced missing label effects.
     def __init__(self, alpha=0.05):
@@ -743,7 +749,7 @@ class ComputeLossOTA:
 
             y = cls_preds_.sqrt_()
             pair_wise_cls_loss = F.binary_cross_entropy_with_logits(
-               torch.log(y/(1-y)) , gt_cls_per_image, reduction="none"
+               safe_logit(y), gt_cls_per_image, reduction="none"
             ).sum(-1)
             del cls_preds_
         
@@ -1070,7 +1076,7 @@ class ComputeLossBinOTA:
 
             y = cls_preds_.sqrt_()
             pair_wise_cls_loss = F.binary_cross_entropy_with_logits(
-               torch.log(y/(1-y)) , gt_cls_per_image, reduction="none"
+               safe_logit(y), gt_cls_per_image, reduction="none"
             ).sum(-1)
             del cls_preds_
         
@@ -1388,7 +1394,7 @@ class ComputeLossAuxOTA:
 
             y = cls_preds_.sqrt_()
             pair_wise_cls_loss = F.binary_cross_entropy_with_logits(
-               torch.log(y/(1-y)) , gt_cls_per_image, reduction="none"
+               safe_logit(y), gt_cls_per_image, reduction="none"
             ).sum(-1)
             del cls_preds_
         
@@ -1541,7 +1547,7 @@ class ComputeLossAuxOTA:
 
             y = cls_preds_.sqrt_()
             pair_wise_cls_loss = F.binary_cross_entropy_with_logits(
-               torch.log(y/(1-y)) , gt_cls_per_image, reduction="none"
+               safe_logit(y), gt_cls_per_image, reduction="none"
             ).sum(-1)
             del cls_preds_
         
