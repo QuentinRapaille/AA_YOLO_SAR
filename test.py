@@ -23,7 +23,7 @@ def test(data,
          batch_size=32,
          imgsz=640,
          conf_thres=0.001,
-         iou_thres=0.65,  # for NMS
+         iou_thres=0.7,  # for NMS
          save_json=False,
          single_cls=False,
          augment=False,
@@ -80,7 +80,7 @@ def test(data,
             data = yaml.load(f, Loader=yaml.SafeLoader)
     check_dataset(data)  # check
     nc = 1 if single_cls else int(data['nc'])  # number of classes
-    iouv = torch.linspace(iou_thres, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    iouv = torch.linspace(0.5, 0.95, 10).to(device)  # IoU vector for mAP@0.5:0.95
     niou = iouv.numel()
 
     # Logging
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=32, help='size of each image batch')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.001, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.65, help='IOU threshold for NMS')
+    parser.add_argument('--iou-thres', type=float, default=0.7, help='IOU threshold for NMS')
     parser.add_argument('--task', default='val', help='train, val, test, speed or study')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--single-cls', action='store_true', help='treat as single-class dataset')
