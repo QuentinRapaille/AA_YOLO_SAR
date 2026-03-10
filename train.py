@@ -37,6 +37,68 @@ from utils.wandb_logging.wandb_utils import WandbLogger, check_wandb_resume
 
 logger = logging.getLogger(__name__)
 
+RESULTS_CSV_COLUMNS = (
+    'epoch', 'epoch_total', 'gpu_mem_gb',
+    'train_box_loss', 'train_obj_loss', 'train_cls_loss', 'train_total_loss',
+    'labels', 'img_size',
+    'precision', 'recall', 'f1', 'map_0_5', 'map_0_5_0_95',
+    'val_box_loss', 'val_obj_loss', 'val_cls_loss',
+)
+
+
+def _f1_score(precision, recall):
+    return 2 * precision * recall / (precision + recall + 1e-16)
+
+
+def _legacy_training_results_to_csv(training_results):
+    lines = [line.strip() for line in training_results.splitlines() if line.strip()]
+    if not lines:
+        return ','.join(RESULTS_CSV_COLUMNS) + '\n'
+    if ',' in lines[0]:
+        return training_results if training_results.endswith('\n') else training_results + '\n'
+
+    rows = [','.join(RESULTS_CSV_COLUMNS)]
+    for line in lines:
+        parts = line.split()
+        if len(parts) < 15:
+            continue
+        epoch, epoch_total = parts[0].split('/')
+        precision = float(parts[8])
+        recall = float(parts[9])
+        row = [
+            epoch,
+            epoch_total,
+            parts[1].rstrip('G'),
+            parts[2],
+            parts[3],
+            parts[4],
+            parts[5],
+            parts[6],
+            parts[7],
+            parts[8],
+            parts[9],
+            f'{_f1_score(precision, recall):.6g}',
+            parts[10],
+            parts[11],
+            parts[12],
+            parts[13],
+            parts[14],
+        ]
+        rows.append(','.join(row))
+    return '\n'.join(rows) + '\n'
+
+
+def _init_results_file(results_file, training_results=None):
+    if training_results is not None:
+        results_file.write_text(_legacy_training_results_to_csv(training_results))
+    elif not results_file.exists():
+        results_file.write_text(','.join(RESULTS_CSV_COLUMNS) + '\n')
+
+
+def _append_results_row(results_file, row):
+    with open(results_file, 'a') as f:
+        f.write(','.join(f'{x:.6g}' if isinstance(x, float) else str(x) for x in row) + '\n')
+
 
 def train(hyp, opt, device, tb_writer=None):
     logger.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
@@ -47,7 +109,7 @@ def train(hyp, opt, device, tb_writer=None):
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
-    results_file = save_dir / 'results.txt'
+    results_file = save_dir / 'results.csv'
 
     # Save run settings
     with open(save_dir / 'hyp.yaml', 'w') as f:
@@ -213,7 +275,7 @@ def train(hyp, opt, device, tb_writer=None):
 
         # Results
         if ckpt.get('training_results') is not None:
-            results_file.write_text(ckpt['training_results'])  # write results.txt
+            _init_results_file(results_file, ckpt['training_results'])
 
         # Epochs
         start_epoch = ckpt['epoch'] + 1
@@ -388,7 +450,8 @@ def train(hyp, opt, device, tb_writer=None):
             # Print
             if rank in [-1, 0]:
                 mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
-                mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
+                mem_gb = torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0
+                mem = '%.3gG' % mem_gb  # (GB)
                 s = ('%10s' * 2 + '%10.4g' * 6) % (
                     '%g/%g' % (epoch, epochs - 1), mem, *mloss, targets.shape[0], imgs.shape[-1])
                 pbar.set_description(s)
@@ -434,10 +497,17 @@ def train(hyp, opt, device, tb_writer=None):
                                                  v5_metric=opt.v5_metric)
 
             # Write
-            with open(results_file, 'a') as f:
-                f.write(s + '%10.4g' * 7 % results + '\n')  # append metrics, val_loss
+            precision, recall, map50, map = results[:4]
+            f1 = _f1_score(precision, recall)
+            _append_results_row(results_file, (
+                epoch, epochs - 1, mem_gb,
+                mloss[0].item(), mloss[1].item(), mloss[2].item(), mloss[3].item(),
+                int(targets.shape[0]), int(imgs.shape[-1]),
+                precision, recall, f1, map50, map,
+                results[4], results[5], results[6],
+            ))
             if len(opt.name) and opt.bucket:
-                os.system('gsutil cp %s gs://%s/results/results%s.txt' % (results_file, opt.bucket, opt.name))
+                os.system('gsutil cp %s gs://%s/results/results%s.csv' % (results_file, opt.bucket, opt.name))
 
             # Log
             tags = ['train/box_loss', 'train/obj_loss', 'train/cls_loss',  # train loss
@@ -707,3 +777,4 @@ if __name__ == '__main__':
         plot_evolution(yaml_file)
         print(f'Hyperparameter evolution complete. Best results saved as: {yaml_file}\n'
               f'Command to train a new model with these hyperparameters: $ python train.py --hyp {yaml_file}')
+    _init_results_file(results_file)

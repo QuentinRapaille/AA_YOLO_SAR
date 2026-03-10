@@ -394,11 +394,29 @@ def plot_results_overlay(start=0, stop=0):  # from utils.plots import *; plot_re
             ax[i].set_title(t[i])
             ax[i].legend()
             ax[i].set_ylabel(f) if i == 0 else None  # add filename
-        fig.savefig(f.replace('.txt', '.png'), dpi=200)
+    fig.savefig(f.replace('.txt', '.png'), dpi=200)
+
+
+def _load_training_results(f):
+    f = Path(f)
+    if f.suffix == '.csv':
+        data = np.genfromtxt(f, delimiter=',', names=True, encoding='utf-8')
+        if data.size == 0:
+            raise ValueError(f'No data in {f}')
+        if data.shape == ():
+            data = np.array([data], dtype=data.dtype)
+        columns = (
+            'train_box_loss', 'train_obj_loss', 'train_cls_loss',
+            'precision', 'recall',
+            'val_box_loss', 'val_obj_loss', 'val_cls_loss',
+            'map_0_5', 'map_0_5_0_95',
+        )
+        return np.vstack([np.atleast_1d(data[col]).astype(float) for col in columns])
+    return np.loadtxt(f, usecols=[2, 3, 4, 8, 9, 12, 13, 14, 10, 11], ndmin=2).T
 
 
 def plot_results(start=0, stop=0, bucket='', id=(), labels=(), save_dir=''):
-    # Plot training 'results*.txt'. from utils.plots import *; plot_results(save_dir='runs/train/exp')
+    # Plot training 'results*.csv' or legacy 'results*.txt'. from utils.plots import *; plot_results(save_dir='runs/train/exp')
     fig, ax = plt.subplots(2, 5, figsize=(12, 6), tight_layout=True)
     ax = ax.ravel()
     s = ['Box', 'Objectness', 'Classification', 'Precision', 'Recall',
@@ -409,11 +427,11 @@ def plot_results(start=0, stop=0, bucket='', id=(), labels=(), save_dir=''):
         c = ('gsutil cp ' + '%s ' * len(files) + '.') % tuple('gs://%s/results%g.txt' % (bucket, x) for x in id)
         os.system(c)
     else:
-        files = list(Path(save_dir).glob('results*.txt'))
-    assert len(files), 'No results.txt files found in %s, nothing to plot.' % os.path.abspath(save_dir)
+        files = sorted(list(Path(save_dir).glob('results*.csv')) + list(Path(save_dir).glob('results*.txt')))
+    assert len(files), 'No results.csv or results.txt files found in %s, nothing to plot.' % os.path.abspath(save_dir)
     for fi, f in enumerate(files):
         try:
-            results = np.loadtxt(f, usecols=[2, 3, 4, 8, 9, 12, 13, 14, 10, 11], ndmin=2).T
+            results = _load_training_results(f)
             n = results.shape[1]  # number of rows
             x = range(start, min(stop, n) if stop else n)
             for i in range(10):

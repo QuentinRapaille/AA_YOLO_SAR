@@ -78,7 +78,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls, v5_metric=False, plot=False, sa
 
     i = f1.mean(0).argmax()  # max F1 index
     map_iouthres = [ap[:, 0].mean()]
-    np.savetxt(Path(save_dir) / 'results.csv', np.array([p[:, i], r[:, i], f1[:, i], map_iouthres]), delimiter=',', fmt='%f', header='Pr,Rec,F1,AP')
+    np.savetxt(Path(save_dir) / 'validation_metrics.csv', np.array([p[:, i], r[:, i], f1[:, i], map_iouthres]), delimiter=',', fmt='%f', header='Pr,Rec,F1,AP')
     return p[:, i], r[:, i], ap, f1[:, i], unique_classes.astype('int32')
 
 
