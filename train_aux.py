@@ -111,6 +111,7 @@ def train(hyp, opt, device, tb_writer=None):
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
     results_file = save_dir / 'results.csv'
+    _init_results_file(results_file)
 
     # Save run settings
     with open(save_dir / 'hyp.yaml', 'w') as f:
@@ -762,4 +763,3 @@ if __name__ == '__main__':
         plot_evolution(yaml_file)
         print(f'Hyperparameter evolution complete. Best results saved as: {yaml_file}\n'
               f'Command to train a new model with these hyperparameters: $ python train.py --hyp {yaml_file}')
-    _init_results_file(results_file)
