@@ -230,45 +230,25 @@ class IDetect_AA(nn.Module):
         self.ia = nn.ModuleList(ImplicitA(x) for x in ch)
         self.im = nn.ModuleList(ImplicitM(self.no * self.na) for _ in ch)
 
-    @staticmethod
-    def _check_finite(name, x, layer_idx):
-        if torch.isfinite(x).all():
-            return
-        x_detached = x.detach()
-        finite_mask = torch.isfinite(x_detached)
-        finite_vals = x_detached[finite_mask]
-        min_val = finite_vals.min().item() if finite_vals.numel() else float('nan')
-        max_val = finite_vals.max().item() if finite_vals.numel() else float('nan')
-        raise RuntimeError(
-            f"IDetect_AA layer {layer_idx} produced non-finite values in {name}: "
-            f"shape={tuple(x.shape)}, finite_min={min_val:.6g}, finite_max={max_val:.6g}"
-        )
-
     def forward(self, x ):
         z = []  # inference output
         self.training |= self.export
         for i in range(self.nl):
             xall = self.m[i](self.ia[i](x[i]))  # conv
             xall = self.im[i](xall)
-            self._check_finite('xall_pre_view', xall, i)
             bs, _, ny, nx = xall.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             xall = xall.view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-            self._check_finite('xall', xall, i)
             
             xobj = self.filtering[i](x[i])
-            self._check_finite('xobj_filtering', xobj, i)
             
             xobj = self.stat_test(xobj.contiguous().view(bs* self.na, -1 ,ny, nx))
-            self._check_finite('xobj_stat_test', xobj, i)
             xobj = xobj.view(bs, self.na, ny, nx, 1)
-            self._check_finite('xobj', xobj, i)
 
             if not self.training:
                 xall = xall.sigmoid()
             xreg = xall[..., :4]
             xclass = xall[..., -1:]
             x[i] = torch.cat((xreg,xobj,xclass), -1)
-            self._check_finite('output', x[i], i)
             if not self.training:  # inference
                 if self.grid[i].shape[2:4] != x[i].shape[2:4]:
                     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
@@ -286,24 +266,18 @@ class IDetect_AA(nn.Module):
         self.training |= self.export
         for i in range(self.nl):
             xall = self.m[i](x[i])  # conv
-            self._check_finite('xall_pre_view', xall, i)
             bs, _, ny, nx = xall.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
             xall = xall.view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-            self._check_finite('xall', xall, i)
 
             xobj_f = self.filtering[i](x[i])
-            self._check_finite('xobj_filtering', xobj_f, i)
             
             xobj = self.stat_test(xobj_f.contiguous().view(bs* self.na, -1 ,ny, nx))
-            self._check_finite('xobj_stat_test', xobj, i)
             xobj = xobj.view(bs, self.na, ny, nx, 1)
-            self._check_finite('xobj', xobj, i)
             if not self.training:
                 xall = xall.sigmoid()
             xreg = xall[..., :4]
             xclass = xall[..., -1:]
             x[i] = torch.cat((xreg,xobj,xclass), -1)
-            self._check_finite('output', x[i], i)
             
             if not self.training:  # inference
                 if self.grid[i].shape[2:4] != x[i].shape[2:4]:

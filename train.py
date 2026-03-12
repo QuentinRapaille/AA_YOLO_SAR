@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 import test  # import test.py to get mAP after each epoch
 from models.experimental import attempt_load
-from models.yolo import Model, IDetect_AA
+from models.yolo import Model
 from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
@@ -365,8 +365,6 @@ def train(hyp, opt, device, tb_writer=None):
     scaler = amp.GradScaler(enabled=cuda)
     compute_loss_ota = ComputeLossOTA(model)  # init loss class
     compute_loss = ComputeLoss(model)  # init loss class
-    det_module = model.module.model[-1] if is_parallel(model) else model.model[-1]
-    use_amp = cuda and not isinstance(det_module, IDetect_AA)
     logger.info(f'Image sizes {imgsz} train, {imgsz_test} test\n'
                 f'Using {dataloader.num_workers} dataloader workers\n'
                 f'Logging results to {save_dir}\n'
@@ -425,7 +423,7 @@ def train(hyp, opt, device, tb_writer=None):
                     imgs = F.interpolate(imgs, size=ns, mode='bilinear', align_corners=False)
 
             # Forward
-            with amp.autocast(enabled=use_amp):
+            with amp.autocast(enabled=cuda):
                 # pred = model(imgs)  # forward
                 imgs_n = imgs
 
@@ -444,9 +442,6 @@ def train(hyp, opt, device, tb_writer=None):
 
             # Optimize
             if ni % accumulate == 0:
-                scaler.unscale_(optimizer)
-                if isinstance(det_module, IDetect_AA):
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 scaler.step(optimizer)  # optimizer.step
                 scaler.update()
                 optimizer.zero_grad()
