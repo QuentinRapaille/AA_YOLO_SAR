@@ -140,3 +140,4 @@ Si vous utilisez AA-YOLO, merci de citer l'article associe (voir `CITATION.cff`)
 ## Remerciements
 
 Ce travail est base sur YOLOv7: <https://github.com/WongKinYiu/yolov7>
+test
