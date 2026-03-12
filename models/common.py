@@ -2073,6 +2073,9 @@ class anomaly_testing(nn.Module):
     """
     def __init__(self):
         super().__init__()
+        self.eps = 1e-4
+        self.max_lambda = 1e4
+        self.max_norm = 1e4
 
     @staticmethod
     def _check_finite(name, x):
@@ -2089,29 +2092,33 @@ class anomaly_testing(nn.Module):
         )
 
     def forward(self, x):
-        batch, C, h, w = x.size()
+        _, C, _, _ = x.size()
         self._check_finite('input', x)
-        meanx = torch.mean(x, dim=[1,2,3], keepdim=True).float()
+        x_float = x.float()
+        meanx = torch.mean(x_float, dim=[1, 2, 3], keepdim=True)
         self._check_finite('meanx', meanx)
         if not hasattr(self, 'lambda_ema'):
             self.register_buffer('lambda_ema', meanx.mean(0).detach())
+        denom = meanx.detach().clamp_min(self.eps)
         if self.training: 
             # compute and save EMA of meanx for each channel, and use it for more stable inference           
             self.lambda_ema *= 0.9
             self.lambda_ema += 0.1 * meanx.mean(0).detach()
-            lambda_chan = 1 / (meanx.float() + 10**(-7))
-            x = lambda_chan * x
+            lambda_chan = denom.reciprocal().clamp(max=self.max_lambda)
+            x_scaled = lambda_chan * x_float
         else:
-            lambda_chan = 1 / (meanx.float() + 10**(-7))
-            x = (0.07 * 1 / (self.lambda_ema + 10**(-7)) + 0.93 * lambda_chan) * x
+            lambda_chan = denom.reciprocal().clamp(max=self.max_lambda)
+            ema_scale = self.lambda_ema.detach().clamp_min(self.eps).reciprocal().clamp(max=self.max_lambda)
+            x_scaled = (0.07 * ema_scale + 0.93 * lambda_chan) * x_float
         self._check_finite('lambda_chan', lambda_chan)
-        self._check_finite('scaled_features', x)
-        x1 = torch.linalg.norm(x.float(), dim=1, ord=1, keepdim=True)
+        self._check_finite('scaled_features', x_scaled)
+        x1 = torch.linalg.norm(x_scaled, dim=1, ord=1, keepdim=True).clamp(max=self.max_norm)
         self._check_finite('l1_norm', x1)
+        x1 = x1.clamp_min(self.eps)
         x1 = -lnGamma.apply(x1, torch.tensor(C, device = x1.device))
         self._check_finite('lnGamma', x1)
 
-        x1 = 2 * sigmoid(0.001 * x1) - 1  # activation function with parameter alpha = 0.001
+        x1 = 2 * torch.sigmoid(0.001 * x1) - 1  # activation function with parameter alpha = 0.001
         self._check_finite('score', x1)
         
-        return x1
+        return x1.to(x.dtype)
