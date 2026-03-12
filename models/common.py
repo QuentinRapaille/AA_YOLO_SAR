@@ -2074,9 +2074,25 @@ class anomaly_testing(nn.Module):
     def __init__(self):
         super().__init__()
 
+    @staticmethod
+    def _check_finite(name, x):
+        if torch.isfinite(x).all():
+            return
+        x_detached = x.detach()
+        finite_mask = torch.isfinite(x_detached)
+        finite_vals = x_detached[finite_mask]
+        min_val = finite_vals.min().item() if finite_vals.numel() else float('nan')
+        max_val = finite_vals.max().item() if finite_vals.numel() else float('nan')
+        raise RuntimeError(
+            f"AA anomaly_testing produced non-finite values in {name}: "
+            f"shape={tuple(x.shape)}, finite_min={min_val:.6g}, finite_max={max_val:.6g}"
+        )
+
     def forward(self, x):
         batch, C, h, w = x.size()
+        self._check_finite('input', x)
         meanx = torch.mean(x, dim=[1,2,3], keepdim=True).float()
+        self._check_finite('meanx', meanx)
         if not hasattr(self, 'lambda_ema'):
             self.register_buffer('lambda_ema', meanx.mean(0).detach())
         if self.training: 
@@ -2088,9 +2104,14 @@ class anomaly_testing(nn.Module):
         else:
             lambda_chan = 1 / (meanx.float() + 10**(-7))
             x = (0.07 * 1 / (self.lambda_ema + 10**(-7)) + 0.93 * lambda_chan) * x
+        self._check_finite('lambda_chan', lambda_chan)
+        self._check_finite('scaled_features', x)
         x1 = torch.linalg.norm(x.float(), dim=1, ord=1, keepdim=True)
+        self._check_finite('l1_norm', x1)
         x1 = -lnGamma.apply(x1, torch.tensor(C, device = x1.device))
+        self._check_finite('lnGamma', x1)
 
         x1 = 2 * sigmoid(0.001 * x1) - 1  # activation function with parameter alpha = 0.001
+        self._check_finite('score', x1)
         
         return x1

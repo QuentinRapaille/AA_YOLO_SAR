@@ -468,6 +468,8 @@ class ComputeLoss:
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
+            if not torch.isfinite(pi).all():
+                raise RuntimeError(f"ComputeLoss received non-finite predictions at layer {i}")
             b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
             tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
 
@@ -496,6 +498,8 @@ class ComputeLoss:
                 #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
 
             obji = self.BCEobj(pi[..., 4], tobj)
+            if not torch.isfinite(obji).all():
+                raise RuntimeError(f"ComputeLoss produced non-finite objectness loss at layer {i}")
             lobj += obji * self.balance[i]  # obj loss
             if self.autobalance:
                 self.balance[i] = self.balance[i] * 0.9999 + 0.0001 / obji.detach().item()
@@ -508,6 +512,8 @@ class ComputeLoss:
         bs = tobj.shape[0]  # batch size
 
         loss = lbox + lobj + lcls
+        if not torch.isfinite(loss).all():
+            raise RuntimeError("ComputeLoss produced non-finite total loss")
         return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
 
     def build_targets(self, p, targets):
@@ -608,6 +614,8 @@ class ComputeLossOTA:
 
         # Losses
         for i, pi in enumerate(p):  # layer index, layer predictions
+            if not torch.isfinite(pi).all():
+                raise RuntimeError(f"ComputeLossOTA received non-finite predictions at layer {i}")
             b, a, gj, gi = bs[i], as_[i], gjs[i], gis[i]  # image, anchor, gridy, gridx
             tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
 
@@ -640,6 +648,8 @@ class ComputeLossOTA:
                 # with open('targets.txt', 'a') as file:
                 #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
             obji =  self.BCEobj(pi[..., 4], tobj)
+            if not torch.isfinite(obji).all():
+                raise RuntimeError(f"ComputeLossOTA produced non-finite objectness loss at layer {i}")
             lobj += obji * self.balance[i]  # obj loss
             if self.autobalance:
                 self.balance[i] = self.balance[i] * 0.9999 + 0.0001 / obji.detach().item()
@@ -652,6 +662,8 @@ class ComputeLossOTA:
         bs = tobj.shape[0]  # batch size
 
         loss = lbox + lobj + lcls
+        if not torch.isfinite(loss).all():
+            raise RuntimeError("ComputeLossOTA produced non-finite total loss")
         return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
 
     def build_targets(self, p, targets, imgs):
